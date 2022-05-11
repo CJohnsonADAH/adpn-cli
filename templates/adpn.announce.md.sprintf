@@ -16,3 +16,7 @@ ADPNet Host managers, please add this AU on your preservation node and then repl
 HOWTO: <http://www.adpn.org/wiki/HOWTO:_Add_a_new_AU_to_your_node_for_preservation>
 
 If you run into any issues adding the AU, please send a report to %(admin_email)s, and we will work with you to help you resolve them.
+
+-- 
+
+%(json)s

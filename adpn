@@ -444,7 +444,7 @@ case "${CMD}" in
 #
 # @version 2021.0709
 
-		adpn-do-notify "${_ADD_CONTEXT[@]}" "${_CMD_REST[@]}" || EXITCODE="$?"
+		adpn-do-notify "${CONTEXT_SW[@]}" "${_CMD_REST[@]}" || EXITCODE="$?"
 		;;
 	
 	"preserve")
@@ -544,6 +544,12 @@ case "${CMD}" in
 			DROP_ID=$( adpn_parameter_from ".Staged To<${JSON_PACKET}" "\\${FROM}" )
 
 			[[ -z "${V}" ]] || adpn_notice "${LINENO}" "3. Notifying ADPNet Tech of staged AU."
+			
+			declare -a _LABEL_SW=()
+			[[ -n "${_SWITCHES[labels]}" ]] && _LABEL_SW+=( "${_SWITCHES[labels]}" )
+			[[ -n "${_SWITCHES[remove_labels]}" ]] && _LABEL_SW+=( "${_SWITCHES[remove_labels]}" )
+			[[ -n "${_SWITCHES[add_labels]}" ]] && _LABEL_SW+=( "${_SWITCHES[add_labels]}" )
+
 			printf "%s" "${JSON_PACKET}" | "${SCRIPTPATH}" notify --from="${DROP_ID}" --subdirectory="${SUBDIRECTORY}" "${CONTEXT_SW[@]}" ; ADN_ERRCODE="$?"
 
 			EXITCODE="${ADN_ERRCODE}"
@@ -634,11 +640,29 @@ case "${CMD}" in
 		fi
 
 		AN_INPUT=$( mktemp )
+		AN_OUTPUT=$( mktemp )
 		
+		printf "[adpn announce] let's try adpn_read_json_packet_source\n" 1>&2
 		adpn_read_json_packet_source "${_ARGV[2]}" "${SCRIPT_CMD_NAME}" "${V}" | adpn_get_json_packets | adpn_select_json_packet "${PIPEDFROM}" "-" "head -n 1" "${PIPEDTO}" > "${AN_INPUT}"
 		
-		adpn notify < "${AN_INPUT}"
-		rm "${AN_INPUT}"
+		declare -a _PIPE_CMD
+		_PIPE_TO="$( adpn_parameter_from "--pipe-to" "cat" | tr '[:space:]' ' ' )"
+		IFS=' ' read -ra _PIPE_CMD <<<"${_PIPE_TO}"
+		
+		"${ADPN}" notify "${CONTEXT_SW[@]}" < "${AN_INPUT}" > "${AN_OUTPUT}" ; EXITCODE="$?"
+		
+		if [[ "${EXITCODE}" -eq 0 ]] ; then
+			printf "\n\n" 1>&2
+			printf "[adpn announce] %s < %s" "${_PIPE_CMD[*]}" "${AN_OUTPUT}" 1>&2
+			read -rp "Press ENTER to continue: "
+			printf "\n\n" 1>&2
+
+			"${_PIPE_CMD[@]}" < "${AN_OUTPUT}" ; EXITCODE="$?"
+		fi
+		
+		rm "${AN_INPUT}" "${AN_OUTPUT}"
+		
+		printf "[adpn announce] ... ok done\n" 1>&2
 		EXITCODE="$?"
 		;;
 		
@@ -805,6 +829,10 @@ case "${CMD}" in
 		adpn-gitlab-do "${_ADD_CONTEXT[@]}" "${_CMD_REST[@]}" ; EXITCODE="$?"
 		;;
 	
+	"tell")
+		adpn-do-tell "${_ADD_CONTEXT[@]}" "${_CMD_REST[@]}" ; EXITCODE="$?"
+		;;
+		
 	"workflow")
 		adpn-workflow-do "${_ADD_CONTEXT[@]}" "${_CMD_REST[@]}" ; EXITCODE="$?"
 		;;

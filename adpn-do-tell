@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# adpn-workflow-do: script to handle adpn workflow commands
+# adpn-do-tell: script to handle adpn tell commands
 #
-# @version 2021.0918
+# @version 2021.1210
 
 SCRIPTPATH="$(which "$0")"
 SCRIPTPATH="$( readlink --canonicalize "${SCRIPTPATH}" )"
@@ -10,18 +10,21 @@ SCRIPTDIR="$(dirname "${SCRIPTPATH}")"
 SCRIPT="$(basename "${SCRIPTPATH}")"
 
 source "${SCRIPTDIR}/adpn-define-aliases"
-source "${SCRIPTDIR}/adpn-workflow-aliases"
 
-__USAGE__="Usage: ${SCRIPT} [--version] [--help] <CMD> [<ARGS>]"
-__HELP__="[${SCRIPT}] Try '${SCRIPT} help' for more information."
+__USAGE__="Usage: %s [--version] [--help] <SERVICE> to <CMD> [<ARGS>]"
+__HELP__="[%s] Try '%s help' for more information." # "${SCRIPT_CMD_NAME}" "${SCRIPT_CMD_NAME}"
 __DOC__="""${__USAGE__}
 
   --version 	Display the version of the script
   --help    	Display these usage notes
 
-The most commonly used ${SCRIPT} commands are:
-  verify       	Verify that an AU's parameters are complete and correct
-               	and its start URL is accessible to the LOCKSS workflow.
+The most commonly used %s SERVICES are:
+  gitlab       	Gitlab API
+  slack        	Slack API
+  
+The most commonly used %s CMDs are:
+  get          	GET values associated with a resource in <ARGS>
+  post         	POST values to a resource in <ARGS>
   
 Exit codes:
 0 = success (successful operation and expected result)
@@ -78,44 +81,47 @@ declare -a CONTEXT_SW=( "${_ADD_CONTEXT[@]}" )
 
 if [[ ! -z "${_PARAM[remote]}" ]] ; then
 
-	adpn_script_handle_remote_execution -t "workflow" "${_CMDLINE[@]:1}"
+	adpn_script_handle_remote_execution -t "tell" "${_CMDLINE[@]:1}"
 	EXITCODE="$?"
 
 else 
 
 case "${CMD}" in
 	
-	"step")
-		[[ -n "${_PARAM[next]}" ]] && STEP_VERB="$( ${ADPN} workflow next -- "${_ARGV[@]:2}" )" || STEP_VERB="${_ARGV[2]}"
-		[[ -n "${_PARAM[next]}" ]] && declare -a STEP_OBJECTS=( "${_ARGV[@]:2}" ) || declare -a STEP_OBJECTS=( "${_ARGV[@]:3}" )
-		declare -a STEP_SW=()
-		for _SW in "${_SWITCHES[@]}" ; do
-			[[ "${_SW}" =~ ^--next$ ]] || STEP_SW+=( "${_SW}" )
+	"gitlab"|"slack")
+		declare -a _GL_REQ=() _GL_PREPOSITION=()
+		_GL_WORDS=""
+		
+		for ARG in "${_CMD_REST[@]}" ; do
+			if [[ -z "${_GL_WORDS}" ]] ; then
+				[[ "${ARG}" == "--" ]] && _GL_WORDS="${ARG}"
+				_GL_REQ+=( "${ARG}" )
+			else
+				[[ -n "${_GL_PREPOSITION[*]}" ]] && _GL_REQ+=( "${ARG}" ) || _GL_PREPOSITION+=( "${ARG}" )
+			fi
 		done
-
-		STEP="$( adpn_workflow_get_step "${STEP_VERB}" "${_STEP_SW[@]}" "--" "${STEP_OBJECTS[@]}" )"
-		adpn_notice "${LINENO}" '$ %s%s' "${STEP}" "$( [[ -n "${_PARAM[dry-run]}" ]] && printf " (dry-run)" )"
-		[[ -z "${_PARAM[dry-run]}" ]] && eval "${STEP}"
-		;;
-	
-	"next")
-		_TEMP_FILE="$( mktemp )"
-		if [[ "${_ARGV[2]}" =~ ^gitlab:(.*)$ ]] ; then
-			"${ADPN}" gitlab get labels "${BASH_REMATCH[1]}" | grep -E "^(TODO|WAITING)[:]" > "${_TEMP_FILE}"
+		if [[ "${_GL_PREPOSITION[*]}" == "to" ]] ; then
+			"adpn-${CMD}-do" "${_GL_REQ[@]}"
+		else
+			adpn_notice "${LINENO}" "$( printf "%s: preposition '%s' not understood." "${CMD}" "${_GL_PREPOSITION[*]}" )"
+			EXITCODE=255
 		fi
-		IFS=$'\r\n' cat "${_TEMP_FILE}" | while read -r LINE ; do
-			printf -- "-%s\n" "${LINE}" 
-		done
-		rm "${_TEMP_FILE}"
 		;;
 		
 	"version"|"help")
-		EXITCODE=0
+		HELPCMD="${_ARGV[2]}"
+		if [[ -z "${HELPCMD}" ]] ; then
+			printf "${__DOC__}\n" "${SCRIPT_CMD_NAME}" "${SCRIPT_CMD_NAME}"
+			EXITCODE=0
+		else 
+			adpn_help_notes "${ME}" "${HELPCMD}" "${CMD}"
+			EXITCODE=$?
+		fi
 		;;
 		
 	*)
-		echo "[${SCRIPT_CMD_NAME}] '${CMD}' command not understood." 1>&2
-		echo "${__HELP__}" 1>&2
+		printf "[%s] '%s' service not understood.\n" "${SCRIPT_CMD_NAME}" "${CMD}" 1>&2
+		printf "${__HELP__}\n" "${SCRIPT_CMD_NAME}" "${SCRIPT_CMD_NAME}" 1>&2
 		EXITCODE=255
 		;;
 esac

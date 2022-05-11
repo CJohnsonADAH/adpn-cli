@@ -77,7 +77,14 @@ LOCATION=$( adpn_parameter_from ".Staged To<${JSON}" )
 SUBDIRECTORY=$( adpn_parameter_from "--subdirectory" "--directory" )
 AU_START_URL="$( adpn_parameter_from ".Start URL<${JSON}" )"
 AU_TITLE="$( adpn_parameter_from ".Ingest Title<${JSON}" )"
-LABELS="$( adpn_parameter_from "--labels" "Content Ingest" )"
+
+declare _LABELS=()
+LABEL="$( adpn_parameter_from "--labels" "Content Ingest" )"
+[[ -n "${LABEL}" ]] && _LABELS+=( "${LABEL}" )
+LABEL="$( adpn_parameter_from "--add_labels" "" )"
+[[ -n "${LABEL}" ]] && _LABELS+=( "${LABEL}" )
+
+LABELS="$( join_by "," "${_LABELS[@]}" )"
 
 declare -A STEP_TEMPLATE=(
 	[staged]=notify

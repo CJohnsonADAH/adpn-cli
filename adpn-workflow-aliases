@@ -56,9 +56,9 @@ function adpn_workflow_get_step() {
 		done
 		
 		if [[ "${CMD}" =~ ^([^&]+)(&&)([^&]+)$ ]] ; then
-			printf "%s %s %s && %s %s %s %s %s\n" "${ADPN}" "${BASH_REMATCH[1]}" "$( printf "%q " "$@")" "${ADPN}" "${BASH_REMATCH[3]}" "${_PIPE_SW[*]}" "${_CMD_SW[*]}" "$( printf "%q " "$@")"
+			printf "%s %s %s %s && %s %s %s %s %s %s\n" "${ADPN}" "${BASH_REMATCH[1]}" "$( printf "%q " "${CONTEXT_SW[@]}" )" "$( printf "%q " "$@")" "${ADPN}" "$( printf "%q " "${CONTEXT_SW[@]}" )" "${BASH_REMATCH[3]}" "${_PIPE_SW[*]}" "${_CMD_SW[*]}" "$( printf "%q " "$@")"
 		else
-			printf "%s pipe %s -- %s %s %s\n" "${ADPN}" "${_PIPE_SW[*]}" "${CMD}" "${_CMD_SW[*]}" "$(printf "%q " "$@" )"
+			printf "%s pipe %s %s -- %s %s %s\n" "${ADPN}" "$( printf "%q " "${CONTEXT_SW[@]}" )" "${_PIPE_SW[*]}" "${CMD}" "${_CMD_SW[*]}" "$(printf "%q " "$@" )"
 		fi
 	fi
 	
