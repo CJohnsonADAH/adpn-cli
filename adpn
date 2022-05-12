@@ -2,7 +2,7 @@
 #
 # adpn: master script for scripted ADPNet operations.
 #
-# @version 2021.0924
+# @version 2022.0512
 
 SCRIPTPATH="$( which "$0" )"
 SCRIPTPATH="$( readlink --canonicalize "${SCRIPTPATH}" )"
@@ -241,13 +241,22 @@ case "${CMD}" in
 		EXITCODE="$?"
 		;;
 	
-#	"document")
-# @method adpn document
+	"receive")
+# @method adpn receive
 #
-# @version 2022.0511
-#
-#		on_drop_do adpn describe "${_ARGV[2]}"
-#		;;
+# @version 2022.0512
+
+		DROP_DEST=$( adpn_parameter_from '--remote' '.drop-server/ssh' )
+		DROP_PATH_T=$( adpn_parameter_from '.stage/base_template' )
+		DROP_USER_T=$( adpn_parameter_from '.drop-server/ssh_template' )
+		DROP_PATH_USER=$( adpn_parameter_from '--from' '.stage/user' )
+		DROP_PATH_SUBDIR=$( adpn_parameter_from '--subdirectory' '--directory' "${_ARGV[2]}" )
+		
+		DROP_PATH="$( printf "${DROP_PATH_T}" "${DROP_PATH_USER}" "${DROP_PATH_SUBDIR}" )"
+		DROP_USER_FULL="$( printf "${DROP_USER_T}" "${DROP_PATH_USER}" )"
+		
+		adpn-package-do describe --remote="${DROP_DEST}" "${DROP_PATH}" | adpn notify "${_ADD_CONTEXT[@]}" --from="${DROP_USER_FULL}" --subdirectory="${DROP_PATH_SUBDIR}" --action="receive the staged package of"
+		;;
 
 	"describe")
 # @method adpn describe

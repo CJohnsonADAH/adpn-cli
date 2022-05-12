@@ -59,6 +59,8 @@ PRETTY_JSON="$( printf "%s" "${JSON}" | adpn-json.py --output=application/json -
 INGEST_STEP="$( adpn_parameter_from "--step" ".Ingest Step<${JSON}" "output" )"
 STAGED_TO=$( adpn_parameter_from "--from" ".Staged To<${JSON}" "\\${USER_FULLMAIL}")
 
+PACKAGE_ACTION=$( adpn_parameter_from "--action" "upload" )
+
 USER_EMAIL=$( adpn_parameter_from ".user/email" )
 USER_REALNAME=$( adpn_parameter_from ".user/realname" )
 USER_FULLMAIL=$( printf "%s <%s>" "${USER_REALNAME}" "${USER_EMAIL}" )
@@ -73,7 +75,7 @@ GITLAB_RESOURCE=$( adpn_parameter_from "--gitlab-api" ".Gitlab Resource<${JSON}"
 
 DEFAULT_REPOSITORY=$( adpn_parameter_from ".gitlab/repository" )
 EXTENT=$( adpn_parameter_from ".File Size<${JSON}" )
-LOCATION=$( adpn_parameter_from ".Staged To<${JSON}" )
+LOCATION=$( adpn_parameter_from "--location" "${STAGED_TO}" )
 SUBDIRECTORY=$( adpn_parameter_from "--subdirectory" "--directory" )
 AU_START_URL="$( adpn_parameter_from ".Start URL<${JSON}" )"
 AU_TITLE="$( adpn_parameter_from ".Ingest Title<${JSON}" )"
@@ -97,6 +99,7 @@ declare -A STEP_TEMPLATE=(
 declare -A TEMPLATE_PARAMS=(
 	[cmd]="${SCRIPT_CMD_NAME}"
 	[post_cmd]="${SCRIPT_CMD_NAME}"
+	[action]="${PACKAGE_ACTION}"
 	[staged_to]="${STAGED_TO}"
 	[staged_by]="${STAGED_BY}"
 	[accepted_by]="${ACCEPTED_BY}"

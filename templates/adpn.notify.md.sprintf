@@ -2,7 +2,7 @@ Add AU from %(staged_to)s: %(subdirectory)s - %(au_title)s
 ==========================================================
 ***This ticket has been created automatically by the `%(cmd)s` command-line tool for %(user_name)s at %(timestamp)s, using a template provided by the script.***
 
-%(user_name)s used the the `%(cmd)s` CLI tool to upload %(extent)s for distributed preservation in ADPNet.
+%(user_name)s used the the `%(cmd)s` CLI tool to %(action)s %(extent)s for distributed preservation in ADPNet.
 The AU has been staged on the `%(location)s` staging area, subdirectory: `%(subdirectory)s`.
 
 | | |
