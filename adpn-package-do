@@ -171,6 +171,45 @@ case "${CMD}" in
 			rm "${FILE}"
 		done
 		;;
+	
+	"describe")
+		MYSQL_HOST="$( adpnprop 'mysql/host' )"
+
+		EXITCODE=1
+		AU="${_ARGV[2]}"
+		if [[ -d "${AU}" ]] ; then
+			if [[ -r "${AU}/manifest.html" ]] ; then
+				cat "${AU}/manifest.html" | grep -E "${ADPN_JSON_PACKET_REGEX}"
+				EXITCODE="$?"
+			fi
+		elif [[ ! -e "${AU}" && "${AU}" =~ ^daemon:(.*)$ ]] ; then
+			INGEST_TITLE="${BASH_REMATCH[1]}"
+			JSON="$( adpn_describe_title_from_daemon "${INGEST_TITLE}" | lockss-plugin-props-print-parameter.py --output=application/json )"
+			declare -a JSON_OVERLAY=( "$( printf "%s" "${JSON}" | adpn-json.py --prolog --output=application/json )" )
+			if [[ -n "${JSON}" ]] ; then
+				INGEST_TITLE="$( printf "%s\n" "${JSON}" | adpn-json.py --key="lockssAU:Volume" )"
+				
+				LOCKSS_AU_KEY="$( printf "%s\n" "${JSON}" | adpn-json.py --key="lockssAU:key" )"
+				declare -a LOCKSS_PARAMETERS=()
+				JSON_OVERLAY+=( "$( adpn_describe_plugin_from_lockss_id "${LOCKSS_AU_KEY}" | lockss-plugin-props-print-parameter.py --output=application/json | adpn-json.py --output=application/json --prolog )" )
+				[[ -n "${INGEST_TITLE}" ]] && JSON_OVERLAY+=( "$( adpn-json.py --key="Ingest Title" --value="${INGEST_TITLE}" --output=application/json --prolog )" )
+				printf "%s\n" "${JSON_OVERLAY[@]}" | adpn-json.py --cascade --output=application/json --prolog
+			fi
+		elif [[ -n "${MYSQL_HOST}" && "${AU}" =~ ^au_title:(.*)$ ]] ; then
+			INGEST_TITLE="${BASH_REMATCH[1]}"
+			INGEST_TITLE_OP=""
+			if [[ "${INGEST_TITLE}" =~ ^/(.*)/$ ]] ; then
+				INGEST_TITLE="${BASH_REMATCH[1]}"
+				INGEST_TITLE_OP="~"
+			fi
+			"${SCRIPTDIR}/adpn-titlelist-do" get --au_title="${INGEST_TITLE_OP}${INGEST_TITLE}" --batch | convertto_json_table titlesdb | get_titlesdb_identifiers ; EXITCODE="$?"
+		elif [[ ! -e "${AU}" && "${AU}" =~ ^gitlab:(.*)$ ]] ; then
+			adpn_read_json_packet_source "${AU}" "${SCRIPT_CMD_NAME}" "${V}" | adpn_get_json_packets | adpn_select_json_packet "${_ARGV[3]}" "-" "head -n 1" "described"
+			EXITCODE="$?"
+		elif [[ ! -e "${AU}" && "${AU}" =~ ^(.*[ ].*)$ ]] ; then
+			INGEST_TITLE="${BASH_REMATCH[1]}"
+		fi
+		;;
 		
 	"version"|"help")
 		EXITCODE=0
