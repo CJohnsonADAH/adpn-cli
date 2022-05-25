@@ -212,6 +212,22 @@ case "${CMD}" in
 		;;
 	
 	"sql")
+# @method adpn publisher sql
+# Issue SQL commands to query or modify the TitleList database, typically the au_publishers table.
+#
+# Usage: 	adpn sql --execute=<SQL> [<OPTIONS>]...
+#
+# SQL is one or more SQL statements, separated by semicolons (;).
+#
+# Options:
+# 	--mysql-host=<HOST>
+# 	--mysql-db=<DB>
+# 	--mysql-user=<USER>
+# 	--mysql-password=<PASSWORD>
+# 	--batch
+#
+# @version 2022.0525
+
 		MYSQL_HOST="$( adpn_parameter_from "--mysql-host" ".mysql/host" )"
 		MYSQL_DB="$( adpn_parameter_from "--mysql-db" ".mysql/db" )"
 		MYSQL_USER="$( adpn_parameter_from "--mysql-user" ".mysql/user" )"
