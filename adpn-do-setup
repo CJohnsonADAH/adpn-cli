@@ -71,7 +71,7 @@ CMD="${_ARGV[1]}"
 ADPNPATH="$( adpn_parameter_from "--script" "\\${SCRIPTPATH}" )"
 ADPN="$( basename "${ADPNPATH}" )"
 
-adpn_set_display_parameters
+adpn_set_display_settings
 
 if [[ ! -z "${_PARAM[version]}" ]] ; then
 	VERSION=$(grep "^# @version" $0 | head --lines=1 | cut --only-delimited --fields=3- --delimiter=" ")
