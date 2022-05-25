@@ -92,6 +92,21 @@ case "${CMD}" in
 		EXITCODE="$?"
 		;;
 	
+	"get")
+# @method adpn publisher get
+# Retrieve information about available publishers given au_pub_id codes.
+# 
+# Usage: adpn publisher get
+#
+# @version 2022.0517
+
+		AU_PUB_ID="${_ARGV[2]}"
+		ADP_SQL="$( printf "SELECT * FROM au_publishers WHERE au_pub_id='%s'" "${AU_PUB_ID}" )"
+		"${SCRIPTPATH}" sql --batch --execute="${ADP_SQL}"
+		
+		EXITCODE="$?"
+		;;
+	
 	"add")
 # @method adpn publisher add
 # Add a new publisher to the list of AU publishers on the props server.
@@ -210,7 +225,14 @@ case "${CMD}" in
 			MYSQL_PASSWORD_SWITCH=$(printf "%s--password=%s" "" "${MYSQL_PASSWORD}")
 		fi
 		
-		mysql --user="${MYSQL_USER}" ${MYSQL_PASSWORD_SWITCH} --database="${MYSQL_DB}" --host="${MYSQL_HOST}" "${_SWITCHES[execute]}"
+		declare -a MYSQL_SW=( --user="${MYSQL_USER}" )
+		[[ -n "${MYSQL_PASSWORD_SWITCH}" ]] && MYSQL_SW+=( "${MYSQL_PASSWORD_SWITCH}" )
+		[[ -n "${MYSQL_DB}" ]] && MYSQL_SW+=( --database="${MYSQL_DB}" )
+		[[ -n "${MYSQL_HOST}" ]] && MYSQL_SW+=( --host="${MYSQL_HOST}" )
+		[[ -n "${_SWITCHES[batch]}" ]] && MYSQL_SW+=( "${_SWITCHES[batch]}" )
+		[[ -n "${_SWITCHES[execute]}" ]] && MYSQL_SW+=( "${_SWITCHES[execute]}" )
+
+		mysql "${MYSQL_SW[@]}"
 		EXITCODE="$?"
 		;;
 		
