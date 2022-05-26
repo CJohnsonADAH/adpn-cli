@@ -615,6 +615,17 @@ case "${CMD}" in
 		;;
 		
 	"announce")
+# @method adpn announce
+# Config Manager: announce a new AU to the network.
+#
+# Usage: adpn announe [-|<JSONFIlE>] [<OPTIONS>]...
+#
+# Options: 
+#   --pipeline
+#   --pipe-to
+#
+# @version 2022.0524
+
 		PIPELINE="$( adpn_parameter_from "--pipeline" "published:announced" )"
 		if [[ -n "${PIPELINE}" ]] ; then
 			PIPEDFROM=$( printf "%s" "${PIPELINE}" | cut --field=1 --delimiter=":" )
@@ -625,27 +636,42 @@ case "${CMD}" in
 		AN_INPUT=$( mktemp )
 		AN_OUTPUT=$( mktemp )
 		
-		printf "[adpn announce] let's try adpn_read_json_packet_source\n" 1>&2
+		adpn_debug 10,adpn,announce "${LINENO}" "Try to get JSON: adpn_read_json_packet_source\n"
 		adpn_read_json_packet_source "${_ARGV[2]}" "${SCRIPT_CMD_NAME}" "${V}" | adpn_get_json_packets | adpn_select_json_packet "${PIPEDFROM}" "-" "head -n 1" "${PIPEDTO}" > "${AN_INPUT}"
 		
 		declare -a _PIPE_CMD
 		_PIPE_TO="$( adpn_parameter_from "--pipe-to" "cat" | tr '[:space:]' ' ' )"
 		IFS=' ' read -ra _PIPE_CMD <<<"${_PIPE_TO}"
 		
-		"${ADPN}" notify "${CONTEXT_SW[@]}" < "${AN_INPUT}" > "${AN_OUTPUT}" ; EXITCODE="$?"
+		AN_LABEL="$(adpn_parameter_from "--label" "Announce AU to ADPNet Node Managers" )"
+		[[ -n "${AN_LABEL}" ]] && AN_LABEL="$( printf '**%s:** ' "${AN_LABEL%%+(:)}" )"
+		AN_IN_ORDER_TO="$( adpn_parameter_from "--in-order-to" "to post a notification to the ADPNet Slack channel" )"
+		[[ -n "${AN_IN_ORDER_TO}" ]] && AN_IN_ORDER_TO="$( printf ' to %s' "${AN_IN_ORDER_TO%%.}" )"
+
+		declare -a _SUM1=( "${SCRIPT}" "${_ARGV[1]}" )
+
+		PIPE_CMDLINE="$( printf "%q " "${_CMDLINE[@]}" )"
+
+		declare -a AN_TEMPLATE=(
+			'--step=published'
+			'--template=announce'
+			"$( printf -- "--template:cmd=%s" "${_SUM1[*]}" )"
+			"$( printf -- "--template:cmdline=%s" "${_CMDLINE[*]}" )"
+			"$( printf -- "--template:label=%s" "${AN_LABEL}" )"
+			"$( printf -- "--template:executed_by=%s" "$( adpn_get_user_email )" )"
+			"$( printf -- "--template:start_time=%s" "$( date )" )"
+			"$( printf -- "--template:in_order_to=%s" "${AN_IN_ORDER_TO}" )"
+			"$( printf -- "--template:pipe_cmdline=%s" "${PIPE_CMDLINE%%*( )}" )"
+		)
+		
+		"${ADPN}" notify "${CONTEXT_SW[@]}" "${AN_TEMPLATE[@]}" < "${AN_INPUT}" > "${AN_OUTPUT}" ; EXITCODE="$?"
 		
 		if [[ "${EXITCODE}" -eq 0 ]] ; then
-			printf "\n\n" 1>&2
-			printf "[adpn announce] %s < %s" "${_PIPE_CMD[*]}" "${AN_OUTPUT}" 1>&2
-			read -rp "Press ENTER to continue: "
-			printf "\n\n" 1>&2
-
 			"${_PIPE_CMD[@]}" < "${AN_OUTPUT}" ; EXITCODE="$?"
 		fi
 		
 		rm "${AN_INPUT}" "${AN_OUTPUT}"
-		
-		printf "[adpn announce] ... ok done\n" 1>&2
+
 		EXITCODE="$?"
 		;;
 		
@@ -813,6 +839,14 @@ case "${CMD}" in
 		;;
 	
 	"tell")
+# @method adpn tell
+# A gateway command for interacting with service APIs, typically for pipelining JSON
+# data packets or posting announcements.
+#
+# Usage: adpn tell [<SERVICE>] to [get|post|<CMD>] [<OPTIONS>]...
+#
+# @version 2022.0526
+
 		adpn-do-tell "${_ADD_CONTEXT[@]}" "${_CMD_REST[@]}" ; EXITCODE="$?"
 		;;
 		

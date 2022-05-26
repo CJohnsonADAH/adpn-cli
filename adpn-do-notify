@@ -189,6 +189,13 @@ fi
 ###############################################################################
 
 ADPN_GITLAB_POST_JSON=$(mktemp)
+declare -a _LABEL_SW=()
+if [[ -n "${_PARAM[remove_labels]}" ]] ; then
+	_LABEL_SW+=( "$( printf -- '--remove_labels=%s' "${_PARAM[remove_labels]}" )" )
+fi
+if [[ -n "${_PARAM[add_labels]}" ]] ; then
+	_LABEL_SW+=( "$( printf -- '--add_labels=%s' "${_PARAM[add_labels]}" )" )
+fi
 
 adpn_debug 50,adpn,notify,gitlab,output,"${INGEST_STEP}" "${LINENO}" "Step: '%s'; Resource: '%s'" "${INGEST_STEP}" "${GITLAB_RESOURCE}"
 if [[ "staged" == "${INGEST_STEP}" ]] ; then
@@ -210,13 +217,6 @@ if [[ "staged" == "${INGEST_STEP}" ]] ; then
 
 elif [[ "output" == "${INGEST_STEP}" && -n "${GITLAB_RESOURCE}" ]] ; then
 	
-	declare -a _LABEL_SW=()
-	if [[ -n "${_PARAM[remove_labels]}" ]] ; then
-		_LABEL_SW+=( "$( printf -- '--remove_labels=%s' "${_PARAM[remove_labels]}" )" )
-	fi
-	if [[ -n "${_PARAM[add_labels]}" ]] ; then
-		_LABEL_SW+=( "$( printf -- '--add_labels=%s' "${_PARAM[add_labels]}" )" )
-	fi
 	declare -a ADG_POST_NOTE=( "adpn-gitlab-do" "post" "note" "${CONTEXT_SW[@]}" "${GITLAB_RESOURCE}" "${_LABEL_SW[@]}" )
 	
 	DBG_BODY="$( printf "%s" "${BODY_TEXT}" | head -c 10 )"
@@ -251,7 +251,53 @@ elif [[ "output" == "${INGEST_STEP}" && -n "${GITLAB_RESOURCE}" ]] ; then
 		adpn_notice "${LINENO}" "ERROR: Failed to post new note to Gitlab Issue <%s>" "${GITLAB_ISSUE}"
 		adpn_notice "${LINENO}" "JSON: <<<EOF\n%s\nEOF;" "$( cat "${ADPN_GITLAB_POST_JSON}" )"
 	fi
+
+elif [[ "published" == "${INGEST_STEP}" ]] ; then
+
+	SLACK_TEXT="$( printf "%s\n" "${BODY_TEXT}" | sed -E '/^--\s+$/,$d' )"
+	GITLAB_TEXT="$( printf "%s\n" "${BODY_TEXT}" | sed --quiet -E '/^--\s+$/,$p' | tail +3 )"
 	
+	SLACK_CHANNEL="$( adpn_parameter_from "--slack-channel" ".slack/channel-announce" )"
+	printf "%s\n" "${SLACK_TEXT}" | "${ADPN}" "${CONTEXT_SW[@]}" tell slack to post "/chat.postMessage" --data-channel="${SLACK_CHANNEL}" --pipe=text > "${ADPN_GITLAB_POST_JSON}" ; EXITCODE="$?"
+	if [[ "${EXITCODE}" -eq 0 && -n "${GITLAB_RESOURCE}" ]] ; then
+		adpn_debug 50,adpn,notify,slack,announce "${LINENO}" "Slack POST, JSON Response: %s" "$( cat "${ADPN_GITLAB_POST_JSON}" )"
+		
+		SLACK_LINK_T="$( adpn_parameter_from ".slack/link" )"
+		SLACK_TS="$( cat "${ADPN_GITLAB_POST_JSON}" | adpn-json.py --key=ts )"
+		SLACK_TS_F="$( printf "%s" "${SLACK_TS}" | sed -E s/[^0-9]//g )"
+		SLACK_LINK_PATH="$( printf "/archives/%s/p%s" "${SLACK_CHANNEL}" "${SLACK_TS_F}" )"
+		
+		SLACK_LINK="$( printf "${SLACK_LINK_T}" "${SLACK_LINK_PATH##/}" )"
+		adpn_notice "${LINENO}" "OK: Slack Announcement at %s, URL: <%s>" "${SLACK_TS}" "${SLACK_LINK}"
+		
+		declare -a ADG_POST_NOTE=( "adpn-gitlab-do" "post" "note" "${CONTEXT_SW[@]}" "${GITLAB_RESOURCE}" "${_LABEL_SW[@]}" )
+		
+		printf "%s\n" "${GITLAB_TEXT}" | "${ADG_POST_NOTE[@]}" > "${ADPN_GITLAB_POST_JSON}"
+		EXITCODE="$?"
+	
+		if [[ "${EXITCODE}" -eq 0 ]] ; then
+			adpn_debug 50,adpn,notify,gitlab,output "${LINENO}" "Gitlab POST, JSON Response: %s" "$( cat "${ADPN_GITLAB_POST_JSON}" )"
+		
+			GL_ISSUE_ID="$( cat "${ADPN_GITLAB_POST_JSON}" | adpn-json.py --key=noteable_iid )" ; EXITCODE="$?"
+			if [[ "${EXITCODE}" -eq 0 ]] ; then
+				GL_NOTE_ID="$( cat "${ADPN_GITLAB_POST_JSON}" | adpn-json.py --key=id )"
+				GL_CREATED_AT="$( cat "${ADPN_GITLAB_POST_JSON}" | adpn-json.py --key=created_at )"
+				GL_AUTHOR_USERNAME="$( cat "${ADPN_GITLAB_POST_JSON}" | adpn-json.py --key=author | grep -E '^username\s' | cut -s --fields=2- )"
+				GL_AUTHOR_REALNAME="$( cat "${ADPN_GITLAB_POST_JSON}" | adpn-json.py --key=author | grep -E '^name\s' | cut -s --fields=2- )"
+				[[ -z "${GL_AUTHOR_REALNAME}" ]] && GL_AUTHOR_REALNAME="${GL_AUTHOR_USERNAME}"
+				[[ -n "${GL_AUTHOR_USERNAME}" ]] && [[ "${GL_AUTHOR_REALNAME}" != "${GL_AUTHOR_USERNAME}" ]] && GL_AUTHOR_REALNAME="${GL_AUTHOR_REALNAME} (@${GL_AUTHOR_USERNAME})"
+				
+				GL_NOTE_URL="${GITLAB_ISSUE}"
+				[[ -n "${GL_NOTE_ID}" ]] && GL_NOTE_URL="$( printf "%s#note_%s" "${GL_NOTE_URL}" "${GL_NOTE_ID}" )"
+				
+				adpn_notice "${LINENO}" "OK: Issue # %d, Note By %s at %s, URL: <%s>" "${GL_ISSUE_ID}" "${GL_AUTHOR_REALNAME}" "${GL_CREATED_AT}" "${GL_NOTE_URL}"
+			else 
+				GL_ERROR="$( cat "${ADPN_GITLAB_POST_JSON}" | adpn-json.py --key=error_description )"
+				adpn_notice "${LINENO}" "ERROR: Failed to post new note to Gitlab Issue <%s>. API responded: '%s'" "${GITLAB_ISSUE}" "${GL_ERROR}"
+			fi
+		fi
+	fi
+
 else
 
 	printf "%s\n" "${BODY_TEXT}"

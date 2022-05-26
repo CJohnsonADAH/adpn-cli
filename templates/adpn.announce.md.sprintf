@@ -1,22 +1,43 @@
-| From    | %(promoted_by)s                                          |
-| ------- | -------------------------------------------------------- |
-| To      | Alabama Digital Preservation Network <adpnet@auburn.edu> |
-| Subject | [Add AU] New AU ready for preservation - %(au_title)s    |
-
-Hey y'all,
+*New AU ready for preservation - %(au_title)s*
 
 We have a new AU for preservation, which is ready to be added and harvested by host institutions.
 
-ADPNet Host managers, please add this AU on your preservation node and then reply-all to the list confirming that you've done so:
+ADPNet Host managers, please add this AU on your preservation node and then reply to this post confirming that you've done so.
 
-*   %(au_title)s   
-    **File Size:** `%(extent)s`   
-    **Gitlab Issue ID:** <%(gitlab_issue)s>
-
-HOWTO: <http://www.adpn.org/wiki/HOWTO:_Add_a_new_AU_to_your_node_for_preservation>
+- *AU TITLE:* %(au_title)s   
+- *FILE SIZE:* %(extent)s   
+- *ISSUE ID:* <%(gitlab_issue)s>
+- *HOWTO:* <http://www.adpn.org/wiki/HOWTO:_Add_a_new_AU_to_your_node_for_preservation>
 
 If you run into any issues adding the AU, please send a report to %(admin_email)s, and we will work with you to help you resolve them.
 
 -- 
 
-%(json)s
+%(label)s%(executed_by)s used the `%(cmd)s` script on this AU at %(start_time)s%(in_order_to)s. Here's the full command line:
+
+~~~
+$ %(cmdline)s
+~~~
+
+Here's the notice sent to the ADPNet Network:
+
+> **New AU ready for preservation - %(au_title)s**
+>
+> We have a new AU for preservation, which is ready to be added and harvested by host institutions.
+> 
+> ADPNet Host managers, please add this AU on your preservation node and then reply to this post confirming that you've done so.
+>
+> * **AU TITLE:** %(au_title)s   
+> * **FILE SIZE:** %(extent)s   
+> * **ISSUE ID:** <%(gitlab_issue)s>
+> * **HOWTO:** <http://www.adpn.org/wiki/HOWTO:_Add_a_new_AU_to_your_node_for_preservation>
+>
+> If you run into any issues adding the AU, please send a report to %(admin_email)s, and we will work with you to help you resolve them.
+
+Here is the JSON metadata for this step in the ingest process:
+
+~~~
+JSON: %(json)s
+~~~
+
+*<small>This note was posted automatically by the `%(post_cmd)s` command on %(timestamp)s; full command line: `%(pipe_cmdline)s`</small>*

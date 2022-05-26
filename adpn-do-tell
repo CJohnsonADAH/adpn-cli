@@ -101,6 +101,7 @@ case "${CMD}" in
 			fi
 		done
 		if [[ "${_GL_PREPOSITION[*]}" == "to" ]] ; then
+			adpn_debug 20,adpn,tell,"${CMD}" "${LINENO}" "adpn-${CMD}-do %s" "$( printf '%q ' "${_GL_REQ[@]}" )"
 			"adpn-${CMD}-do" "${_GL_REQ[@]}"
 		else
 			adpn_notice "${LINENO}" "$( printf "%s: preposition '%s' not understood." "${CMD}" "${_GL_PREPOSITION[*]}" )"
