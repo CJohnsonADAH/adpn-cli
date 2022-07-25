@@ -249,7 +249,7 @@ python:Cryptodome	%s Python module	python3 -m pip install pycryptodomex
 				ALL_CONTEXTS="${PUBLISHER_CONTEXTS}|${NODE_MANAGER_CONTEXTS}|${PROPS_MANAGER_CONTEXTS}"
 				
 				IFS=""
-				MAKEMANIFEST_API="https://archives.alabama.gov/Services/ADPNet/MakeManifest/"
+				MAKEMANIFEST_API="http://adpn.org/services/MakeManifest/"
 				PLUGINS_SOURCE_API="${MAKEMANIFEST_API}?%(encoded)s"
 				if ( "${ME}" context --publisher --covers="${AS_CONTEXT}" ) ; then
 					read -ep "Institution: " AS_PROPS[institution]
@@ -313,6 +313,18 @@ python:Cryptodome	%s Python module	python3 -m pip install pycryptodomex
 					read -ep "Staging Area Base URL [${DEFAULT}]: " AS_PROPS[$KEY] ; AS_PROPS[$KEY]="${AS_PROPS[$KEY]:-$DEFAULT}"
 
 				fi
+
+				if ( "${ME}" context --config-manager --covers="${AS_CONTEXT}" ) ; then
+					KEY="drop-server/ssh" ; DEFAULT="${DROP_SERVER_USER}@${DROP_SERVER}"
+					read -ep "Drop Server Manager Account [${DEFAULT}]: " AS_PROPS[$KEY] ; AS_PROPS[$KEY]="${AS_PROPS[$KEY]:-$DEFAULT}"
+					
+					KEY="drop-server/ssh_template" ; DEFAULT="%s@${DROP_SERVER}"
+					read -ep "Drop Server Manager Account [${DEFAULT}]: " AS_PROPS[$KEY] ; AS_PROPS[$KEY]="${AS_PROPS[$KEY]:-$DEFAULT}"
+					
+					KEY="stage/base_dir/%s" ; DEFAULT="/var/www/lockss-drop/%s/drop_au_content_in_here/"
+					read -ep "Drop Server File System Path to AU Content (where %s = publisher's user account) [${DEFAULT}]: " AS_PROPS[$KEY] ; AS_PROPS[$KEY]="${AS_PROPS[$KEY]:-$DEFAULT}"
+				fi
+				
 				
 				if ( "${ME}" context --all --covers="${AS_CONTEXT}" ) ; then
 					KEY="preserve/admin-email" DEFAULT="ADPNet TPC <adpntpc@auburn.edu>"

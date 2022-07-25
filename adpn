@@ -247,12 +247,13 @@ case "${CMD}" in
 # @version 2022.0512
 
 		DROP_DEST=$( adpn_parameter_from '--remote' '.drop-server/ssh' )
-		DROP_PATH_T=$( adpn_parameter_from '.stage/base_template' )
+		DROP_PATH_T=$( adpn_parameter_from '.stage/base_dir/%s' )
 		DROP_USER_T=$( adpn_parameter_from '.drop-server/ssh_template' )
 		DROP_PATH_USER=$( adpn_parameter_from '--from' '.stage/user' )
 		DROP_PATH_SUBDIR=$( adpn_parameter_from '--subdirectory' '--directory' "${_ARGV[2]}" )
 		
-		DROP_PATH="$( printf "${DROP_PATH_T}" "${DROP_PATH_USER}" "${DROP_PATH_SUBDIR}" )"
+		DROP_PATH_BASE="$( printf "${DROP_PATH_T}" "${DROP_PATH_USER}" )" 
+		DROP_PATH="$( printf "%s/%s" "${DROP_PATH_BASE%/}" "${DROP_PATH_SUBDIR}" )"
 		DROP_USER_FULL="$( printf "${DROP_USER_T}" "${DROP_PATH_USER}" )"
 		
 		adpn-package-do describe --remote="${DROP_DEST}" "${DROP_PATH}" | adpn notify "${_ADD_CONTEXT[@]}" --from="${DROP_USER_FULL}" --subdirectory="${DROP_PATH_SUBDIR}" --action="receive the staged package of"
